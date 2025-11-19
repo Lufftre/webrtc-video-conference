@@ -64,10 +64,10 @@ class VideoConference {
   }
 
   connectToSignalingServer() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
+    // Use environment variable or fallback to current host for development
+    const backendUrl = window.BACKEND_URL || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
 
-    this.ws = new WebSocket(wsUrl);
+    this.ws = new WebSocket(backendUrl);
 
     this.ws.onopen = () => {
       console.log('Connected to signaling server');
