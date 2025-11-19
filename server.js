@@ -3,8 +3,18 @@ import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import nano from 'nano';
 import Anthropic from '@anthropic-ai/sdk';
+import cors from 'cors';
 
 const app = express();
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false
+}));
+
 app.use(express.json({ limit: '50mb' })); // For handling base64 images
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
@@ -75,17 +85,6 @@ async function saveRoomToDB(roomId, participants) {
     console.error('Error saving room to CouchDB:', error.message);
   }
 }
-
-// CORS middleware for cross-origin requests
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // API endpoint for Claude AI image analysis
 app.post('/api/analyze-image', async (req, res) => {
