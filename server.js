@@ -24,7 +24,7 @@ const rooms = new Map(); // roomId -> Set of client objects
 const clients = new Map(); // ws -> { id, roomId }
 
 // CouchDB connection (configure via environment variables)
-const couchDbUrl = process.env.COUCHDB_URL || 'http://localhost:5984';
+const couchDbUrl = process.env.COUCHDB_URL || 'https://admin:RootPass123!@team1-videoconfdb2.apache-couchdb.auto.prod.osaas.io';
 const couchDb = nano(couchDbUrl);
 let roomsDb;
 let configDb;
