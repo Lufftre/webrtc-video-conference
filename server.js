@@ -27,28 +27,57 @@ const clients = new Map(); // ws -> { id, roomId }
 const couchDbUrl = process.env.COUCHDB_URL || 'http://localhost:5984';
 const couchDb = nano(couchDbUrl);
 let roomsDb;
+let configDb;
 
-// Anthropic Claude AI client
-const anthropic = process.env.aikey
-  ? new Anthropic({ apiKey: process.env.aikey })
-  : null;
+// Anthropic Claude AI client (will be initialized from CouchDB)
+let anthropic = null;
 
-// Initialize CouchDB
+// Initialize CouchDB and load configuration
 async function initCouchDB() {
   try {
-    const dbName = 'webrtc_rooms';
     const dbList = await couchDb.db.list();
 
-    if (!dbList.includes(dbName)) {
-      await couchDb.db.create(dbName);
-      console.log(`Created CouchDB database: ${dbName}`);
+    // Initialize rooms database
+    const roomsDbName = 'webrtc_rooms';
+    if (!dbList.includes(roomsDbName)) {
+      await couchDb.db.create(roomsDbName);
+      console.log(`Created CouchDB database: ${roomsDbName}`);
     }
+    roomsDb = couchDb.use(roomsDbName);
 
-    roomsDb = couchDb.use(dbName);
+    // Initialize config database
+    const configDbName = 'webrtc_config';
+    if (!dbList.includes(configDbName)) {
+      await couchDb.db.create(configDbName);
+      console.log(`Created CouchDB database: ${configDbName}`);
+    }
+    configDb = couchDb.use(configDbName);
+
+    // Load API key from config
+    await loadConfig();
+
     console.log('Connected to CouchDB');
   } catch (error) {
     console.error('CouchDB initialization error:', error.message);
     console.log('Continuing without CouchDB persistence...');
+  }
+}
+
+// Load configuration from CouchDB
+async function loadConfig() {
+  try {
+    const config = await configDb.get('app_config');
+    if (config.anthropicApiKey) {
+      anthropic = new Anthropic({ apiKey: config.anthropicApiKey });
+      console.log('Claude AI configured from CouchDB');
+    }
+  } catch (error) {
+    if (error.statusCode === 404) {
+      console.log('No configuration found in CouchDB. Claude AI is not configured.');
+      console.log('To enable Claude AI, create a document with ID "app_config" in the webrtc_config database with field "anthropicApiKey"');
+    } else {
+      console.error('Error loading config from CouchDB:', error.message);
+    }
   }
 }
 
