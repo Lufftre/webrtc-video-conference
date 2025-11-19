@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Conference</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    #room-info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px 20px;
+      border-radius: 8px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    #room-info h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 5px;
+    }
+
+    #room-info p {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    #status {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 15px;
+      border-radius: 8px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.disconnected {
+      background: #ef4444;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    #videos-container {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-auto-rows: minmax(200px, 1fr);
+    }
+
+    .video-wrapper {
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-wrapper.local video {
+      transform: scaleX(-1);
+    }
+
+    .video-label {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+    }
+
+    #error {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(239, 68, 68, 0.9);
+      padding: 20px 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      text-align: center;
+      display: none;
+      z-index: 200;
+    }
+
+    #error.show {
+      display: block;
+    }
+
+    #error h3 {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    #error p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* Responsive grid adjustments */
+    @media (max-width: 768px) {
+      #videos-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1200px) {
+      #videos-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1201px) {
+      #videos-container {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="room-info">
+    <h2>Room</h2>
+    <p id="room-name">-</p>
+  </div>
+
+  <div id="status">
+    <div class="status-indicator" id="status-indicator"></div>
+    <span id="status-text">Connecting...</span>
+  </div>
+
+  <div id="error">
+    <h3>Error</h3>
+    <p id="error-message"></p>
+  </div>
+
+  <div id="videos-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

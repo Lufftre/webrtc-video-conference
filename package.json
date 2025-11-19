@@ -1,0 +1,16 @@
+{
+  "name": "webrtc-video-conferencing",
+  "version": "1.0.0",
+  "description": "Simple WebRTC video conferencing application",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "nano": "^10.1.3"
+  }
+}
