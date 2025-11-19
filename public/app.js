@@ -320,7 +320,191 @@ class VideoConference {
   }
 }
 
+// AI Chat Manager
+class AIChatManager {
+  constructor() {
+    this.chatPanel = document.getElementById('ai-chat-panel');
+    this.chatToggle = document.getElementById('ai-chat-toggle');
+    this.closeBtn = document.getElementById('close-chat');
+    this.screenshotBtn = document.getElementById('screenshot-btn');
+    this.messagesContainer = document.getElementById('ai-chat-messages');
+
+    this.setupEventListeners();
+  }
+
+  setupEventListeners() {
+    this.chatToggle.addEventListener('click', () => this.toggleChat());
+    this.closeBtn.addEventListener('click', () => this.toggleChat());
+    this.screenshotBtn.addEventListener('click', () => this.captureAndAnalyze());
+  }
+
+  toggleChat() {
+    this.chatPanel.classList.toggle('open');
+  }
+
+  async captureAndAnalyze() {
+    this.screenshotBtn.disabled = true;
+
+    try {
+      // Add user message
+      this.addMessage('user', 'What do you see in this meeting screenshot?');
+
+      // Capture screenshot
+      const screenshot = await this.captureScreenshot();
+
+      // Add screenshot to chat
+      this.addImageMessage(screenshot);
+
+      // Add loading message
+      const loadingMsgId = this.addLoadingMessage();
+
+      // Send to backend for Claude AI analysis
+      const response = await this.sendToClaudeAPI(screenshot);
+
+      // Remove loading message
+      this.removeMessage(loadingMsgId);
+
+      // Add AI response
+      this.addMessage('assistant', response);
+
+    } catch (error) {
+      console.error('Error analyzing screenshot:', error);
+      this.addMessage('assistant', `Error: ${error.message}`);
+    } finally {
+      this.screenshotBtn.disabled = false;
+    }
+  }
+
+  async captureScreenshot() {
+    const videosContainer = document.getElementById('videos-container');
+
+    // Use html2canvas approach
+    return new Promise((resolve, reject) => {
+      // Create a canvas from the videos container
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Set canvas size to match container
+      const rect = videosContainer.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      // Fill background
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Get all video elements
+      const videos = videosContainer.querySelectorAll('video');
+
+      if (videos.length === 0) {
+        reject(new Error('No video streams available to capture'));
+        return;
+      }
+
+      // Draw each video onto the canvas
+      let drawn = 0;
+      videos.forEach((video, index) => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoRect = video.getBoundingClientRect();
+          const containerRect = videosContainer.getBoundingClientRect();
+
+          const x = videoRect.left - containerRect.left;
+          const y = videoRect.top - containerRect.top;
+
+          ctx.drawImage(video, x, y, videoRect.width, videoRect.height);
+          drawn++;
+        }
+      });
+
+      if (drawn === 0) {
+        reject(new Error('No video frames ready to capture'));
+        return;
+      }
+
+      // Convert canvas to base64 image
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      resolve(dataUrl);
+    });
+  }
+
+  async sendToClaudeAPI(imageBase64) {
+    // Get backend URL from config
+    const backendUrl = window.BACKEND_URL
+      ? window.BACKEND_URL.replace('wss:', 'https:').replace('ws:', 'http:')
+      : window.location.origin;
+
+    const response = await fetch(`${backendUrl}/api/analyze-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        image: imageBase64
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to analyze image');
+    }
+
+    const data = await response.json();
+    return data.analysis;
+  }
+
+  addMessage(type, text) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `ai-message ${type}`;
+    messageDiv.textContent = text;
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+    return messageDiv.id = `msg-${Date.now()}`;
+  }
+
+  addImageMessage(imageDataUrl) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'ai-message user';
+
+    const img = document.createElement('img');
+    img.src = imageDataUrl;
+    img.className = 'message-image';
+
+    messageDiv.appendChild(img);
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+  }
+
+  addLoadingMessage() {
+    const messageDiv = document.createElement('div');
+    const id = `loading-${Date.now()}`;
+    messageDiv.id = id;
+    messageDiv.className = 'ai-message loading';
+
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'loading-dot';
+      messageDiv.appendChild(dot);
+    }
+
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+    return id;
+  }
+
+  removeMessage(id) {
+    const message = document.getElementById(id);
+    if (message) {
+      message.remove();
+    }
+  }
+
+  scrollToBottom() {
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+}
+
 // Initialize the video conference when the page loads
 window.addEventListener('DOMContentLoaded', () => {
   new VideoConference();
+  new AIChatManager();
 });

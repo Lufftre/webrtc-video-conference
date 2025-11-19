@@ -2,8 +2,10 @@ import express from 'express';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import nano from 'nano';
+import Anthropic from '@anthropic-ai/sdk';
 
 const app = express();
+app.use(express.json({ limit: '50mb' })); // For handling base64 images
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
@@ -15,6 +17,11 @@ const clients = new Map(); // ws -> { id, roomId }
 const couchDbUrl = process.env.COUCHDB_URL || 'http://localhost:5984';
 const couchDb = nano(couchDbUrl);
 let roomsDb;
+
+// Anthropic Claude AI client
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
 
 // Initialize CouchDB
 async function initCouchDB() {
@@ -78,6 +85,61 @@ app.use((req, res, next) => {
     return res.sendStatus(200);
   }
   next();
+});
+
+// API endpoint for Claude AI image analysis
+app.post('/api/analyze-image', async (req, res) => {
+  try {
+    if (!anthropic) {
+      return res.status(500).json({
+        error: 'Claude AI is not configured. Please set ANTHROPIC_API_KEY environment variable.'
+      });
+    }
+
+    const { image } = req.body;
+
+    if (!image) {
+      return res.status(400).json({ error: 'No image provided' });
+    }
+
+    // Extract base64 data from data URL
+    const base64Data = image.split(',')[1];
+    const mediaType = image.split(';')[0].split(':')[1];
+
+    // Call Claude AI API
+    const message = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType || 'image/jpeg',
+                data: base64Data
+              }
+            },
+            {
+              type: 'text',
+              text: 'You are analyzing a screenshot from a video conference. Describe what you see in the meeting. Who is present? What are they doing? Provide a helpful summary of the meeting scene.'
+            }
+          ]
+        }
+      ]
+    });
+
+    const analysis = message.content[0].text;
+
+    res.json({ analysis });
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to analyze image'
+    });
+  }
 });
 
 // Serve static files

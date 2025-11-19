@@ -12,7 +12,13 @@
       "mcp__osc__describe-eyevinn-web-runner-instance",
       "mcp__osc__list-service-secrets",
       "mcp__osc__create-service-secret",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__osc__describe-minio-minio-instance",
+      "mcp__osc__create-storage-bucket",
+      "Bash(mc cp:*)",
+      "Bash(mc mb:*)",
+      "Bash(mc anonymous set:*)",
+      "Bash(mc ls:*)"
     ],
     "deny": [],
     "ask": []
