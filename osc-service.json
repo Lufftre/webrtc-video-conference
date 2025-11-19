@@ -1,0 +1,34 @@
+{
+  "name": "webrtc-video-conference",
+  "displayName": "WebRTC Video Conference with AI",
+  "description": "Real-time video conferencing with Claude AI screenshot analysis. Features room-based meetings, video-only streaming, and collaborative AI chat visible to all participants.",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "repository": "https://github.com/Lufftre/webrtc-video-conference",
+  "license": "MIT",
+  "type": "web-application",
+  "runtime": "nodejs",
+  "port": 8080,
+  "env": {
+    "COUCHDB_URL": {
+      "description": "CouchDB connection URL for room persistence and config storage",
+      "required": false,
+      "default": "http://localhost:5984"
+    }
+  },
+  "features": [
+    "WebRTC video conferencing",
+    "Claude AI screenshot analysis",
+    "Real-time collaborative AI chat",
+    "Room-based meetings",
+    "CouchDB persistence",
+    "Video-only streaming"
+  ],
+  "dependencies": {
+    "couchdb": {
+      "optional": true,
+      "description": "For room persistence and API key storage"
+    }
+  },
+  "documentation": "https://github.com/Lufftre/webrtc-video-conference/blob/master/README.md"
+}
