@@ -29,8 +29,8 @@ const couchDb = nano(couchDbUrl);
 let roomsDb;
 
 // Anthropic Claude AI client
-const anthropic = process.env.ANTHROPIC_API_KEY
-  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const anthropic = process.env.aikey
+  ? new Anthropic({ apiKey: process.env.aikey })
   : null;
 
 // Initialize CouchDB
@@ -91,7 +91,7 @@ app.post('/api/analyze-image', async (req, res) => {
   try {
     if (!anthropic) {
       return res.status(500).json({
-        error: 'Claude AI is not configured. Please set ANTHROPIC_API_KEY environment variable.'
+        error: 'Claude AI is not configured. Please set aikey secret in OSC.'
       });
     }
 
