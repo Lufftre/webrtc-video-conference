@@ -127,7 +127,34 @@ class VideoConference {
       case 'client-left':
         this.handleClientLeft(message.clientId);
         break;
+
+      case 'ai-chat':
+        // Handle AI chat broadcast from other users
+        if (this.aiChatManager && message.fromId !== this.clientId) {
+          this.aiChatManager.handleBroadcast(message.data);
+        }
+        break;
     }
+  }
+
+  // Set AI chat manager reference
+  setAIChatManager(aiChatManager) {
+    this.aiChatManager = aiChatManager;
+  }
+
+  // Broadcast AI chat to all users in the room
+  broadcastAIChat(question, answer, screenshot) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+    this.ws.send(JSON.stringify({
+      type: 'ai-chat',
+      data: {
+        from: 'User',
+        question: question,
+        answer: answer,
+        screenshot: screenshot
+      }
+    }));
   }
 
   async createPeerConnection(remoteClientId, shouldCreateOffer) {
@@ -322,11 +349,13 @@ class VideoConference {
 
 // AI Chat Manager
 class AIChatManager {
-  constructor() {
+  constructor(videoConference) {
+    this.videoConference = videoConference;
     this.chatPanel = document.getElementById('ai-chat-panel');
     this.chatToggle = document.getElementById('ai-chat-toggle');
     this.closeBtn = document.getElementById('close-chat');
-    this.screenshotBtn = document.getElementById('screenshot-btn');
+    this.askBtn = document.getElementById('ask-ai-btn');
+    this.questionInput = document.getElementById('ai-question-input');
     this.messagesContainer = document.getElementById('ai-chat-messages');
 
     this.setupEventListeners();
@@ -335,19 +364,32 @@ class AIChatManager {
   setupEventListeners() {
     this.chatToggle.addEventListener('click', () => this.toggleChat());
     this.closeBtn.addEventListener('click', () => this.toggleChat());
-    this.screenshotBtn.addEventListener('click', () => this.captureAndAnalyze());
+    this.askBtn.addEventListener('click', () => this.askQuestion());
+
+    // Allow Enter key to submit
+    this.questionInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        this.askQuestion();
+      }
+    });
   }
 
   toggleChat() {
     this.chatPanel.classList.toggle('open');
   }
 
-  async captureAndAnalyze() {
-    this.screenshotBtn.disabled = true;
+  async askQuestion() {
+    const question = this.questionInput.value.trim();
+
+    if (!question) return;
+
+    this.askBtn.disabled = true;
+    this.questionInput.disabled = true;
 
     try {
-      // Add user message
-      this.addMessage('user', 'What do you see in this meeting screenshot?');
+      // Add user message locally
+      this.addMessage('user', question);
 
       // Capture screenshot
       const screenshot = await this.captureScreenshot();
@@ -359,20 +401,36 @@ class AIChatManager {
       const loadingMsgId = this.addLoadingMessage();
 
       // Send to backend for Claude AI analysis
-      const response = await this.sendToClaudeAPI(screenshot);
+      const response = await this.sendToClaudeAPI(screenshot, question);
 
       // Remove loading message
       this.removeMessage(loadingMsgId);
 
-      // Add AI response
+      // Add AI response locally
       this.addMessage('assistant', response);
+
+      // Broadcast to all users in the room
+      this.videoConference.broadcastAIChat(question, response, screenshot);
+
+      // Clear input
+      this.questionInput.value = '';
 
     } catch (error) {
       console.error('Error analyzing screenshot:', error);
       this.addMessage('assistant', `Error: ${error.message}`);
     } finally {
-      this.screenshotBtn.disabled = false;
+      this.askBtn.disabled = false;
+      this.questionInput.disabled = false;
     }
+  }
+
+  // Handle incoming AI chat broadcasts from other users
+  handleBroadcast(data) {
+    this.addMessage('user', `${data.from}: ${data.question}`);
+    if (data.screenshot) {
+      this.addImageMessage(data.screenshot);
+    }
+    this.addMessage('assistant', data.answer);
   }
 
   async captureScreenshot() {
@@ -427,7 +485,7 @@ class AIChatManager {
     });
   }
 
-  async sendToClaudeAPI(imageBase64) {
+  async sendToClaudeAPI(imageBase64, question) {
     // Get backend URL from config
     const backendUrl = window.BACKEND_URL
       ? window.BACKEND_URL.replace('wss:', 'https:').replace('ws:', 'http:')
@@ -439,7 +497,8 @@ class AIChatManager {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        image: imageBase64
+        image: imageBase64,
+        question: question
       })
     });
 
@@ -505,6 +564,7 @@ class AIChatManager {
 
 // Initialize the video conference when the page loads
 window.addEventListener('DOMContentLoaded', () => {
-  new VideoConference();
-  new AIChatManager();
+  const videoConference = new VideoConference();
+  const aiChatManager = new AIChatManager(videoConference);
+  videoConference.setAIChatManager(aiChatManager);
 });

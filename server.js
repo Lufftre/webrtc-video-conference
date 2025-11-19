@@ -124,7 +124,7 @@ app.post('/api/analyze-image', async (req, res) => {
       });
     }
 
-    const { image } = req.body;
+    const { image, question } = req.body;
 
     if (!image) {
       return res.status(400).json({ error: 'No image provided' });
@@ -133,6 +133,9 @@ app.post('/api/analyze-image', async (req, res) => {
     // Extract base64 data from data URL
     const base64Data = image.split(',')[1];
     const mediaType = image.split(';')[0].split(':')[1];
+
+    // Use custom question or default prompt
+    const promptText = question || 'You are analyzing a screenshot from a video conference. Describe what you see in the meeting. Who is present? What are they doing? Provide a helpful summary of the meeting scene.';
 
     // Call Claude AI API
     const message = await anthropic.messages.create({
@@ -152,7 +155,7 @@ app.post('/api/analyze-image', async (req, res) => {
             },
             {
               type: 'text',
-              text: 'You are analyzing a screenshot from a video conference. Describe what you see in the meeting. Who is present? What are they doing? Provide a helpful summary of the meeting scene.'
+              text: `You are analyzing a screenshot from a video conference. Answer this question about the meeting: ${promptText}`
             }
           ]
         }
@@ -189,6 +192,9 @@ wss.on('connection', (ws) => {
         case 'answer':
         case 'ice-candidate':
           handleSignaling(ws, data);
+          break;
+        case 'ai-chat':
+          handleAIChat(ws, data);
           break;
         case 'leave':
           handleLeave(ws);
@@ -264,6 +270,27 @@ function handleSignaling(ws, data) {
       }));
     }
   });
+}
+
+function handleAIChat(ws, data) {
+  const client = clients.get(ws);
+  if (!client) return;
+
+  const room = rooms.get(client.roomId);
+  if (!room) return;
+
+  // Broadcast AI chat to all clients in the room
+  room.forEach((targetWs) => {
+    if (targetWs.readyState === 1) {
+      targetWs.send(JSON.stringify({
+        type: 'ai-chat',
+        fromId: client.id,
+        data: data.data
+      }));
+    }
+  });
+
+  console.log(`AI chat broadcasted in room ${client.roomId}`);
 }
 
 function handleLeave(ws) {

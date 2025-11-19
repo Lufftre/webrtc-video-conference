@@ -300,11 +300,32 @@
       padding: 20px;
       background: rgba(0, 0, 0, 0.5);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      gap: 10px;
     }
 
-    #screenshot-btn {
-      width: 100%;
+    #ai-question-input {
+      flex: 1;
       padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    #ai-question-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    #ai-question-input:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(102, 126, 234, 0.5);
+    }
+
+    #ask-ai-btn {
+      padding: 12px 20px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border: none;
@@ -313,13 +334,14 @@
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.2s;
+      white-space: nowrap;
     }
 
-    #screenshot-btn:hover {
+    #ask-ai-btn:hover {
       opacity: 0.9;
     }
 
-    #screenshot-btn:disabled {
+    #ask-ai-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
@@ -360,7 +382,8 @@
     </div>
     <div id="ai-chat-messages"></div>
     <div id="ai-chat-actions">
-      <button id="screenshot-btn">📸 Analyze Meeting Screenshot</button>
+      <input type="text" id="ai-question-input" placeholder="Ask about the meeting..." />
+      <button id="ask-ai-btn">🤖 Ask AI</button>
     </div>
   </div>
 
